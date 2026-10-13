@@ -10,6 +10,6 @@ public class HelloController {
 
     @GetMapping("/hello")
     public HelloResponse hello() {
-        return new HelloResponse("Hello, world! This is version 2!");
+        return new HelloResponse("Hello, world! This is version 3!");
     }
 }
