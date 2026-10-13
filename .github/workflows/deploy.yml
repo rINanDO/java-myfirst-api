@@ -1,0 +1,37 @@
+name: CI/CD — build & deploy to Azure
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR (for docker push)
+        run: az acr login --name acrmyfirstapi
+
+      - name: Build and push image to ACR
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: acrmyfirstapi.azurecr.io/wa-myfirstapiapp:${{ github.sha }}
+
+      - name: Update Web App container to new image + restart
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            az webapp config container set \
+              --name wa-myfirstapiapp \
+              --resource-group rg-myfirstapi \
+              --docker-custom-image-name acrmyfirstapi.azurecr.io/wa-myfirstapiapp:${{ github.sha }} \
+              --docker-registry-server-url https://acrmyfirstapi.azurecr.io
+            az webapp restart --name wa-myfirstapiapp --resource-group rg-myfirstapi
